@@ -1,6 +1,6 @@
 # Does LoRA rank matter for code generation?
 
-[![tests](https://github.com/SummmerKing/Lora-optimiser/actions/workflows/tests.yml/badge.svg)](https://github.com/SummmerKing/Lora-optimiser/actions/workflows/tests.yml)
+[![tests](https://github.com/SummmerKing/does-lora-rank-matter/actions/workflows/tests.yml/badge.svg)](https://github.com/SummmerKing/does-lora-rank-matter/actions/workflows/tests.yml)
 
 A small, controlled experiment: fine-tune `Qwen2.5-1.5B-Instruct` on Python
 instruction data with LoRA at ranks 4, 16 and 64, and with LoRA+, then check
