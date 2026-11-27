@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/SummmerKing/Lora-optimiser"
+Repository = "https://github.com/KSVinaySathvik/does-lora-rank-matter"
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "scipy>=1.10"]
