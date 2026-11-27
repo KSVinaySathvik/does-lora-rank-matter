@@ -1,16 +1,8 @@
-# Does LoRA rank matter for code generation?
+# Does LoRA Rank Matter for Code Generation?
 
-[![tests](https://github.com/SummmerKing/does-lora-rank-matter/actions/workflows/tests.yml/badge.svg)](https://github.com/SummmerKing/does-lora-rank-matter/actions/workflows/tests.yml)
+This repository contains a small, controlled study of whether the LoRA rank matters when fine-tuning a code model. `Qwen2.5-1.5B-Instruct` is fine-tuned on Python instruction data with LoRA at ranks 4, 16 and 64, and with LoRA+, and each model is scored by pass@1: the generated code is run against the unit tests of HumanEval (164 problems) and MBPP-sanitized (257 problems), rather than compared by text overlap.
 
-A small, controlled experiment: fine-tune `Qwen2.5-1.5B-Instruct` on Python
-instruction data with LoRA at ranks 4, 16 and 64, and with LoRA+, then check
-whether any of it changes how many benchmark problems the model actually
-solves. Scores are pass@1 from running the generated code against the unit
-tests of HumanEval (164 problems) and MBPP-sanitized (257 problems), not
-text overlap.
-
-LoRA is implemented from scratch (no `peft`), and every fine-tuned config is
-trained with 3 seeds.
+LoRA is implemented from scratch (no `peft`), and every fine-tuned configuration is trained with 3 seeds.
 
 ## Results
 
@@ -29,7 +21,7 @@ LoRA rows. Full tables with CIs and p-values are in
 
 ![gain over base](results/figures/gain_over_base.png)
 
-What I take from this:
+Findings:
 
 - **Rank doesn't matter here.** r4, r16 and r64 are within about a point of
   each other on both benchmarks, and none of the paired differences is close
@@ -39,17 +31,16 @@ What I take from this:
 - **Fine-tuning moves the two benchmarks in opposite directions.** MBPP goes
   up about 6 points and HumanEval goes down 7-9 points. Uncorrected p-values
   are 0.02-0.09, but none survive Holm correction across the 7 comparisons,
-  so I'd call these suggestive. One plausible reason is that the training
+  so they are suggestive only. One plausible reason is that the training
   data looks more like MBPP (short "write a function that..." tasks) than
   HumanEval's docstring-completion format.
 - Validation loss barely separates the configs either (below).
 
 ![validation loss](results/figures/val_loss.png)
 
-## How the comparison is set up
+## Experimental Setup
 
-The point was to make the comparison fair, so a few things are done
-deliberately:
+The comparison is designed to be fair:
 
 - **Loss on response tokens only.** Prompt, chat-template and padding tokens
   get label `-100`. Prompt and response are tokenized separately so the
@@ -87,10 +78,9 @@ Selected learning rates (val loss at 0.3 epochs):
 
 Three of the four picks are at the edge of their grid, so a wider sweep
 might shift the numbers a little. The val-loss differences across the grid
-are small (under 0.015) though, so I don't expect it to change the overall
-picture.
+are small (under 0.015), so the overall picture is unlikely to change.
 
-## LoRA implementation
+## LoRA Implementation
 
 `src/lora_code/lora.py` wraps each targeted `nn.Linear`:
 
@@ -104,38 +94,19 @@ The tests check the forward pass against the dense formula, identity at
 init, the gradients of A and B against their closed forms, the parameter
 count against Σ r(d_in + d_out), merge/unmerge, and the save/load round trip.
 
-## Repository layout
+## Repository Structure
 
-```
-configs/grid.json        model, dataset, configs, LR grids, training settings
-src/lora_code/
-    lora.py              LoRA layer, wrapping, merge, adapter save/load
-    data.py              chat formatting, prompt masking, decontamination
-    train.py             training loop
-    optim.py             AdamW with LoRA+ param groups, warmup + cosine
-    modeling.py          model loading and batched greedy generation
-    benchmarks.py        HumanEval / MBPP prompts and test programs
-    execution.py         running generated code with resource limits
-    stats.py             bootstrap CIs, permutation test, Holm, pass@k
-scripts/
-    prepare_data.py      build data/train.jsonl and data/val.jsonl
-    sweep_lr.py          LR sweep, writes runs/selected_lr.json
-    train.py             train one config + seed
-    evaluate.py          evaluate the base model or one run
-    aggregate.py         tables and figures in results/
-    run_all.sh           everything, one GPU
-    run_parallel.py      everything, spread over several GPUs
-notebooks/run_study.ipynb  the same pipeline for Colab or a local Jupyter
-tests/                   CPU-only tests (pytest)
-runs/                    per-run config and metrics (adapters not committed)
-results/                 per-problem results, summary and figures
-```
+- **configs/grid.json**: model, dataset, configurations, learning-rate grids and training settings.
+- **src/lora_code/**: the LoRA layer with merge and adapter save/load (`lora.py`), chat formatting, prompt masking and decontamination (`data.py`), the training loop, the optimizer with LoRA+ parameter groups, model loading and batched greedy generation, benchmark prompts and tests, sandboxed code execution, and statistics (bootstrap CIs, permutation test, Holm correction, pass@k).
+- **scripts/**: data preparation, the learning-rate sweep, training and evaluation of single runs, aggregation, and drivers for one GPU (`run_all.sh`) or several (`run_parallel.py`).
+- **notebooks/run_study.ipynb**: the same pipeline for Colab or a local Jupyter.
+- **tests/**: CPU-only tests.
+- **runs/**: per-run configuration and metrics (adapters are not committed).
+- **results/**: per-problem results, the summary and figures.
 
-Every per-problem result is saved, including the raw model response and the
-stderr of failed tests, so any number in the summary can be traced back to
-individual problems.
+Every per-problem result is saved, including the raw model response and the stderr of failed tests, so any number in the summary can be traced back to individual problems.
 
-## Running it
+## Usage
 
 Needs Python 3.10+ and a CUDA GPU with about 30 GB free for training.
 
